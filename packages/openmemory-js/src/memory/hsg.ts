@@ -324,6 +324,70 @@ export function compute_simhash(text: string): string {
     }
     return hash;
 }
+
+function normalize_dedup_user_id(user_id?: string | null): string {
+    return user_id || "anonymous";
+}
+
+function parse_dedup_metadata(value: unknown): Record<string, unknown> {
+    if (!value) return {};
+    if (typeof value === "string") {
+        try {
+            const parsed = JSON.parse(value);
+            return parsed && typeof parsed === "object"
+                ? (parsed as Record<string, unknown>)
+                : {};
+        } catch {
+            return {};
+        }
+    }
+    return typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function read_scoped_string(
+    metadata: Record<string, unknown>,
+    key: "space" | "target_space" | "payload_sha",
+): string | null {
+    const raw = metadata[key];
+    if (typeof raw !== "string") return null;
+    const normalized = raw.trim();
+    return normalized.length > 0 ? normalized : null;
+}
+
+function read_dedup_space(metadata: Record<string, unknown>): string | null {
+    return (
+        read_scoped_string(metadata, "space") ||
+        read_scoped_string(metadata, "target_space")
+    );
+}
+
+function dedup_scope_matches(existing: any, metadata?: unknown): boolean {
+    const existing_meta = parse_dedup_metadata(existing?.meta);
+    const incoming_meta = parse_dedup_metadata(metadata);
+
+    const existing_space = read_dedup_space(existing_meta);
+    const incoming_space = read_dedup_space(incoming_meta);
+    if (
+        (existing_space || incoming_space) &&
+        (!existing_space || !incoming_space || existing_space !== incoming_space)
+    ) {
+        return false;
+    }
+
+    const existing_payload_sha = read_scoped_string(existing_meta, "payload_sha");
+    const incoming_payload_sha = read_scoped_string(incoming_meta, "payload_sha");
+    if (
+        (existing_payload_sha || incoming_payload_sha) &&
+        (!existing_payload_sha ||
+            !incoming_payload_sha ||
+            existing_payload_sha !== incoming_payload_sha)
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
 export function hamming_dist(hash1: string, hash2: string): number {
     let dist = 0;
     for (let i = 0; i < hash1.length; i++) {
@@ -1052,8 +1116,17 @@ export async function add_hsg_memory(
     deduplicated?: boolean;
 }> {
     const simhash = compute_simhash(content);
-    const existing = await q.get_mem_by_simhash.get(simhash);
-    if (existing && hamming_dist(simhash, existing.simhash) <= 3) {
+    const normalized_user_id = normalize_dedup_user_id(user_id);
+    const candidates = await q.get_memories_by_simhash_and_user.all(
+        simhash,
+        normalized_user_id,
+    );
+    const existing = candidates.find(
+        (candidate) =>
+            hamming_dist(simhash, candidate.simhash) <= 3 &&
+            dedup_scope_matches(candidate, metadata),
+    );
+    if (existing) {
         const now = Date.now();
         const boosted_sal = Math.min(1, existing.salience + 0.15);
         await q.upd_seen.run(existing.id, now, boosted_sal, now);
@@ -1101,7 +1174,7 @@ export async function add_hsg_memory(
         );
         await q.ins_mem.run(
             id,
-            user_id || "anonymous",
+            normalized_user_id,
             cur_seg,
             stored_content,
             simhash,
@@ -1131,7 +1204,7 @@ export async function add_hsg_memory(
                 result.sector,
                 result.vector,
                 result.dim,
-                user_id || "anonymous",
+                normalized_user_id,
             );
         }
         const mean_vec = calc_mean_vec(emb_res, all_sectors);

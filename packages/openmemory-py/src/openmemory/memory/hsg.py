@@ -207,6 +207,59 @@ def hamming_dist(h1: str, h2: str) -> int:
         if x & 1: dist += 1
     return dist
 
+
+def normalize_dedup_user_id(user_id: Optional[str]) -> str:
+    return user_id or "anonymous"
+
+
+def parse_dedup_metadata(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except Exception:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _read_scoped_string(metadata: Dict[str, Any], key: str) -> Optional[str]:
+    value = metadata.get(key)
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def read_dedup_space(metadata: Dict[str, Any]) -> Optional[str]:
+    return _read_scoped_string(metadata, "space") or _read_scoped_string(
+        metadata, "target_space"
+    )
+
+
+def dedup_scope_matches(existing_meta: Any, incoming_meta: Any) -> bool:
+    existing = parse_dedup_metadata(existing_meta)
+    incoming = parse_dedup_metadata(incoming_meta)
+
+    existing_space = read_dedup_space(existing)
+    incoming_space = read_dedup_space(incoming)
+    if (existing_space or incoming_space) and (
+        not existing_space or not incoming_space or existing_space != incoming_space
+    ):
+        return False
+
+    existing_payload_sha = _read_scoped_string(existing, "payload_sha")
+    incoming_payload_sha = _read_scoped_string(incoming, "payload_sha")
+    if (existing_payload_sha or incoming_payload_sha) and (
+        not existing_payload_sha
+        or not incoming_payload_sha
+        or existing_payload_sha != incoming_payload_sha
+    ):
+        return False
+
+    return True
+
 def sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
@@ -378,9 +431,22 @@ async def calc_multi_vec_fusion_score(mid: str, qe: Dict[str, List[float]], w: D
 
 async def add_hsg_memory(content: str, tags: Optional[str] = None, metadata: Any = None, user_id: Optional[str] = None) -> Dict[str, Any]:
     simhash = compute_simhash(content)
-    existing = db.fetchone("SELECT * FROM memories WHERE simhash=? ORDER BY salience DESC LIMIT 1", (simhash,))
+    normalized_user_id = normalize_dedup_user_id(user_id)
+    candidates = db.fetchall(
+        "SELECT * FROM memories WHERE simhash=? AND user_id=? ORDER BY salience DESC, created_at DESC",
+        (simhash, normalized_user_id),
+    )
+    existing = next(
+        (
+            row
+            for row in candidates
+            if hamming_dist(simhash, row["simhash"]) <= 3
+            and dedup_scope_matches(row.get("meta"), metadata)
+        ),
+        None,
+    )
 
-    if existing and hamming_dist(simhash, existing["simhash"]) <= 3:
+    if existing:
         now = int(time.time()*1000)
         boost = min(1.0, (existing["salience"] or 0) + 0.15)
         db.execute("UPDATE memories SET last_seen_at=?, salience=?, updated_at=? WHERE id=?", (now, boost, now, existing["id"]))
@@ -420,7 +486,7 @@ async def add_hsg_memory(content: str, tags: Optional[str] = None, metadata: Any
         init_sal = max(0.0, min(1.0, 0.4 + 0.1 * len(cls["additional"])))
         q.ins_mem(
             id=mid,
-            user_id=user_id or "anonymous",
+            user_id=normalized_user_id,
             segment=cur_seg,
             content=stored,
             simhash=simhash,
