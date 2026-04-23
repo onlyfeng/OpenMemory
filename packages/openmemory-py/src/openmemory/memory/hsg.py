@@ -441,7 +441,7 @@ async def add_hsg_memory(content: str, tags: Optional[str] = None, metadata: Any
             row
             for row in candidates
             if hamming_dist(simhash, row["simhash"]) <= 3
-            and dedup_scope_matches(row.get("meta"), metadata)
+            and dedup_scope_matches(row["meta"], metadata)
         ),
         None,
     )
