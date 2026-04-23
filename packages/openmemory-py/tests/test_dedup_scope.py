@@ -81,13 +81,12 @@ def _make_stubs() -> dict:
 
 
 def _load_hsg():
-    _ensure_pkg("openmemory")
-    _ensure_pkg("openmemory.utils")
-    _ensure_pkg("openmemory.memory")
-    _ensure_pkg("openmemory.core")
-    _ensure_pkg("openmemory.ops")
-
     with patch.dict(sys.modules, _make_stubs()):
+        _ensure_pkg("openmemory")
+        _ensure_pkg("openmemory.utils")
+        _ensure_pkg("openmemory.memory")
+        _ensure_pkg("openmemory.core")
+        _ensure_pkg("openmemory.ops")
         _load_module("openmemory.utils.text", ROOT / "utils" / "text.py")
         return _load_module("openmemory.memory.hsg", ROOT / "memory" / "hsg.py")
 
@@ -121,6 +120,20 @@ def test_dedup_scope_requires_same_space_and_payload_sha():
         {"target_space": "ns-A", "payload_sha": "sha-1"},
         {"target_space": "ns-B", "payload_sha": "sha-1"},
     )
+    # space differs but target_space same → no dedup (space is checked independently)
+    assert not HSG.dedup_scope_matches(
+        {"space": "private:alice", "target_space": "shared:red", "payload_sha": "sha-1"},
+        {"space": "private:bob", "target_space": "shared:red", "payload_sha": "sha-1"},
+    )
+
+
+def test_dedup_scope_matches_serialized_json_meta():
+    import json
+    # existing_meta as JSON string (mirrors the db row["meta"] format)
+    existing_json = json.dumps({"space": "private:alice", "target_space": "ns-A", "payload_sha": "sha-1"})
+    assert HSG.dedup_scope_matches(existing_json, {"space": "private:alice", "target_space": "ns-A", "payload_sha": "sha-1"})
+    assert not HSG.dedup_scope_matches(existing_json, {"space": "private:alice", "target_space": "ns-B", "payload_sha": "sha-1"})
+    assert not HSG.dedup_scope_matches(existing_json, {"space": "private:bob", "target_space": "ns-A", "payload_sha": "sha-1"})
 
 
 def test_normalize_dedup_user_id_defaults_to_anonymous():

@@ -52,6 +52,19 @@ async function main() {
         "same user with a different space must create a new memory",
     );
 
+    // space differs but target_space same → space is checked independently
+    const diff_space_same_target = await memory.add(content, {
+        user_id: "alice",
+        space: "team:blue",
+        target_space: "private:alice",
+        payload_sha: "sha-alice-1",
+    });
+    assert.notEqual(
+        diff_space_same_target.id,
+        private_alice.id,
+        "different space with same target_space must create a new memory",
+    );
+
     const payload_variant = await memory.add(content, {
         user_id: "alice",
         space: "private:alice",
@@ -91,7 +104,7 @@ async function main() {
     );
 
     const alice_memories = await q.all_mem_by_user.all("alice", 20, 0);
-    assert.equal(alice_memories.length, 4);
+    assert.equal(alice_memories.length, 5);
 
     console.log("test_dedup_scope.ts passed");
 }
