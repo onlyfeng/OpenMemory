@@ -232,30 +232,23 @@ def _read_scoped_string(metadata: Dict[str, Any], key: str) -> Optional[str]:
     return normalized or None
 
 
-def read_dedup_space(metadata: Dict[str, Any]) -> Optional[str]:
-    return _read_scoped_string(metadata, "space") or _read_scoped_string(
-        metadata, "target_space"
-    )
-
-
 def dedup_scope_matches(existing_meta: Any, incoming_meta: Any) -> bool:
     existing = parse_dedup_metadata(existing_meta)
     incoming = parse_dedup_metadata(incoming_meta)
 
-    existing_space = read_dedup_space(existing)
-    incoming_space = read_dedup_space(incoming)
-    if (existing_space or incoming_space) and (
-        not existing_space or not incoming_space or existing_space != incoming_space
-    ):
+    existing_space = _read_scoped_string(existing, "space")
+    incoming_space = _read_scoped_string(incoming, "space")
+    if (existing_space or incoming_space) and existing_space != incoming_space:
+        return False
+
+    existing_target = _read_scoped_string(existing, "target_space")
+    incoming_target = _read_scoped_string(incoming, "target_space")
+    if (existing_target or incoming_target) and existing_target != incoming_target:
         return False
 
     existing_payload_sha = _read_scoped_string(existing, "payload_sha")
     incoming_payload_sha = _read_scoped_string(incoming, "payload_sha")
-    if (existing_payload_sha or incoming_payload_sha) and (
-        not existing_payload_sha
-        or not incoming_payload_sha
-        or existing_payload_sha != incoming_payload_sha
-    ):
+    if (existing_payload_sha or incoming_payload_sha) and existing_payload_sha != incoming_payload_sha:
         return False
 
     return True

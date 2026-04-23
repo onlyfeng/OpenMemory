@@ -96,17 +96,30 @@ HSG = _load_hsg()
 
 
 def test_dedup_scope_requires_same_space_and_payload_sha():
+    # both fields match → dedup allowed
     assert HSG.dedup_scope_matches(
         {"space": "private:alice", "payload_sha": "sha-1"},
-        {"target_space": "private:alice", "payload_sha": "sha-1"},
+        {"space": "private:alice", "payload_sha": "sha-1"},
     )
+    # space matches but target_space differs → no dedup
+    assert not HSG.dedup_scope_matches(
+        {"space": "private:alice", "target_space": "ns-A", "payload_sha": "sha-1"},
+        {"space": "private:alice", "target_space": "ns-B", "payload_sha": "sha-1"},
+    )
+    # space differs → no dedup
     assert not HSG.dedup_scope_matches(
         {"space": "private:alice", "payload_sha": "sha-1"},
-        {"target_space": "private:bob", "payload_sha": "sha-1"},
+        {"space": "private:bob", "payload_sha": "sha-1"},
     )
+    # payload_sha differs → no dedup
     assert not HSG.dedup_scope_matches(
         {"space": "private:alice", "payload_sha": "sha-1"},
-        {"target_space": "private:alice", "payload_sha": "sha-2"},
+        {"space": "private:alice", "payload_sha": "sha-2"},
+    )
+    # target_space differs, no space field → no dedup
+    assert not HSG.dedup_scope_matches(
+        {"target_space": "ns-A", "payload_sha": "sha-1"},
+        {"target_space": "ns-B", "payload_sha": "sha-1"},
     )
 
 

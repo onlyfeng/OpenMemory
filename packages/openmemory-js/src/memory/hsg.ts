@@ -354,23 +354,19 @@ function read_scoped_string(
     return normalized.length > 0 ? normalized : null;
 }
 
-function read_dedup_space(metadata: Record<string, unknown>): string | null {
-    return (
-        read_scoped_string(metadata, "space") ||
-        read_scoped_string(metadata, "target_space")
-    );
-}
-
 function dedup_scope_matches(existing: any, metadata?: unknown): boolean {
     const existing_meta = parse_dedup_metadata(existing?.meta);
     const incoming_meta = parse_dedup_metadata(metadata);
 
-    const existing_space = read_dedup_space(existing_meta);
-    const incoming_space = read_dedup_space(incoming_meta);
-    if (
-        (existing_space || incoming_space) &&
-        (!existing_space || !incoming_space || existing_space !== incoming_space)
-    ) {
+    const existing_space = read_scoped_string(existing_meta, "space");
+    const incoming_space = read_scoped_string(incoming_meta, "space");
+    if ((existing_space || incoming_space) && existing_space !== incoming_space) {
+        return false;
+    }
+
+    const existing_target = read_scoped_string(existing_meta, "target_space");
+    const incoming_target = read_scoped_string(incoming_meta, "target_space");
+    if ((existing_target || incoming_target) && existing_target !== incoming_target) {
         return false;
     }
 
@@ -378,9 +374,7 @@ function dedup_scope_matches(existing: any, metadata?: unknown): boolean {
     const incoming_payload_sha = read_scoped_string(incoming_meta, "payload_sha");
     if (
         (existing_payload_sha || incoming_payload_sha) &&
-        (!existing_payload_sha ||
-            !incoming_payload_sha ||
-            existing_payload_sha !== incoming_payload_sha)
+        existing_payload_sha !== incoming_payload_sha
     ) {
         return false;
     }

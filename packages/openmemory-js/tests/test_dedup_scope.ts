@@ -77,8 +77,21 @@ async function main() {
     );
     assert.equal(exact_duplicate.deduplicated, true);
 
+    // same space but different target_space must NOT deduplicate
+    const different_target = await memory.add(content, {
+        user_id: "alice",
+        space: "private:alice",
+        target_space: "ns-B",
+        payload_sha: "sha-alice-1",
+    });
+    assert.notEqual(
+        different_target.id,
+        private_alice.id,
+        "same space but different target_space must create a new memory",
+    );
+
     const alice_memories = await q.all_mem_by_user.all("alice", 20, 0);
-    assert.equal(alice_memories.length, 3);
+    assert.equal(alice_memories.length, 4);
 
     console.log("test_dedup_scope.ts passed");
 }
