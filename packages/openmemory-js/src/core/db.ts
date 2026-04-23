@@ -18,6 +18,9 @@ type q_type = {
     del_mem: { run: (...p: any[]) => Promise<void> };
     get_mem: { get: (id: string) => Promise<any> };
     get_mem_by_simhash: { get: (simhash: string) => Promise<any> };
+    get_memories_by_simhash_and_user: {
+        all: (simhash: string, user_id: string) => Promise<any[]>;
+    };
     all_mem: { all: (limit: number, offset: number) => Promise<any[]> };
     all_mem_by_sector: {
         all: (sector: string, limit: number, offset: number) => Promise<any[]>;
@@ -216,6 +219,9 @@ if (is_pg) {
             `create index if not exists openmemory_memories_simhash_idx on ${m}(simhash)`,
         );
         await pg.query(
+            `create index if not exists openmemory_memories_simhash_user_idx on ${m}(simhash,user_id)`,
+        );
+        await pg.query(
             `create index if not exists openmemory_memories_user_idx on ${m}(user_id)`,
         );
         await pg.query(
@@ -315,6 +321,13 @@ if (is_pg) {
                 get_async(
                     `select * from ${m} where simhash=$1 order by salience desc limit 1`,
                     [simhash],
+                ),
+        },
+        get_memories_by_simhash_and_user: {
+            all: (simhash, user_id) =>
+                all_async(
+                    `select * from ${m} where simhash=$1 and user_id=$2 order by salience desc, created_at desc`,
+                    [simhash, user_id],
                 ),
         },
         all_mem: {
@@ -516,6 +529,9 @@ if (is_pg) {
             "create index if not exists idx_memories_simhash on memories(simhash)",
         );
         db.run(
+            "create index if not exists idx_memories_simhash_user on memories(simhash, user_id)",
+        );
+        db.run(
             "create index if not exists idx_memories_ts on memories(last_seen_at)",
         );
         db.run(
@@ -704,6 +720,13 @@ if (is_pg) {
                 one(
                     "select * from memories where simhash=? order by salience desc limit 1",
                     [simhash],
+                ),
+        },
+        get_memories_by_simhash_and_user: {
+            all: (simhash, user_id) =>
+                many(
+                    "select * from memories where simhash=? and user_id=? order by salience desc, created_at desc",
+                    [simhash, user_id],
                 ),
         },
         all_mem: {
