@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { API_BASE_URL, getHeaders } from "@/lib/api"
+import { API_BASE_URL, ensureOk, getHeaders } from "@/lib/api"
 
 interface mem {
     id: string
@@ -25,7 +25,7 @@ const sectorColors: Record<string, string> = {
     reflective: "purple"
 }
 
-export default function memories() {
+export default function Memories() {
     const [mems, setmems] = useState<mem[]>([])
     const [srch, setsrch] = useState("")
     const [filt, setfilt] = useState("all")
@@ -52,7 +52,7 @@ export default function memories() {
                 ? `${API_BASE_URL}/memory/all?l=${limit}&u=${offset}&sector=${filt}`
                 : `${API_BASE_URL}/memory/all?l=${limit}&u=${offset}`
             const res = await fetch(url, { headers: getHeaders() })
-            if (!res.ok) throw new Error('failed to fetch memories')
+            await ensureOk(res, 'fetch memories')
             const data = await res.json()
             setmems(data.items || [])
         } catch (e: any) {
@@ -79,7 +79,7 @@ export default function memories() {
                     filters: filt !== "all" ? { sector: filt } : undefined,
                 }),
             })
-            if (!res.ok) throw new Error('search failed')
+            await ensureOk(res, 'search memories')
             const data = await res.json()
             setmems(
                 (data.matches || []).map((m: any) => ({
@@ -109,7 +109,7 @@ export default function memories() {
                     metadata: { primary_sector: sector },
                 }),
             })
-            if (!res.ok) throw new Error('failed to add memory')
+            await ensureOk(res, 'add memory')
             setShowAddModal(false)
             fetchMems()
         } catch (e: any) {
@@ -127,7 +127,7 @@ export default function memories() {
                     tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
                 }),
             })
-            if (!res.ok) throw new Error('failed to update memory')
+            await ensureOk(res, 'update memory')
             setShowEditModal(false)
             setEditingMem(null)
             fetchMems()
@@ -142,7 +142,7 @@ export default function memories() {
                 method: 'DELETE',
                 headers: getHeaders(),
             })
-            if (!res.ok) throw new Error('failed to delete memory')
+            await ensureOk(res, 'delete memory')
             setShowDeleteModal(false)
             setDeletingMemId(null)
             fetchMems()

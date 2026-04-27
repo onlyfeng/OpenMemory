@@ -31,6 +31,8 @@ The dashboard is pre-configured to connect to `localhost:8080`. If your backend 
 ```bash
 # dashboard/.env.local
 NEXT_PUBLIC_API_URL=http://localhost:8080
+# Required when the backend has OPENMEMORY_API_KEY or OM_API_KEY enabled.
+NEXT_PUBLIC_API_KEY=your-openmemory-key
 ```
 
 ### 3. Start the Dashboard

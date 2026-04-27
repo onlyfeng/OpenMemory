@@ -23,6 +23,19 @@ const port = process.env.OM_PORT || '8080';
 const url = process.env.OPENMEMORY_URL || `http://localhost:${port}`;
 const key = process.env.OPENMEMORY_API_KEY || process.env.OM_API_KEY || '';
 
+const normalizeServerApiKey = () => {
+  if (!process.env.OPENMEMORY_API_KEY) return;
+  if (
+    process.env.OM_API_KEY &&
+    process.env.OM_API_KEY !== process.env.OPENMEMORY_API_KEY
+  ) {
+    console.warn(
+      '[warn] OPENMEMORY_API_KEY differs from OM_API_KEY; using OPENMEMORY_API_KEY for server auth.',
+    );
+  }
+  process.env.OM_API_KEY = process.env.OPENMEMORY_API_KEY;
+};
+
 const helptext = `
 openmemory cli (opm)
 
@@ -259,6 +272,7 @@ for (let i = 1; i < argv.length; i++) {
         break;
       case 'serve':
         try {
+            normalizeServerApiKey();
             console.log('[opm] passing control to server...');
             require('../dist/server/index.js');
         } catch (e) {
