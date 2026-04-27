@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { API_BASE_URL, ensureOk, getHeaders } from "@/lib/api"
 
 interface mem {
@@ -25,6 +25,8 @@ const sectorColors: Record<string, string> = {
     reflective: "purple"
 }
 
+const MEMORY_PAGE_LIMIT = 1000
+
 export default function Memories() {
     const [mems, setmems] = useState<mem[]>([])
     const [srch, setsrch] = useState("")
@@ -37,20 +39,14 @@ export default function Memories() {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [editingMem, setEditingMem] = useState<mem | null>(null)
     const [deletingMemId, setDeletingMemId] = useState<string | null>(null)
-    const limit = 1000
-
-    useEffect(() => {
-        fetchMems()
-    }, [page, filt])
-
-    async function fetchMems() {
+    const fetchMems = useCallback(async () => {
         setloading(true)
         seterror(null)
         try {
-            const offset = (page - 1) * limit
+            const offset = (page - 1) * MEMORY_PAGE_LIMIT
             const url = filt !== "all"
-                ? `${API_BASE_URL}/memory/all?l=${limit}&u=${offset}&sector=${filt}`
-                : `${API_BASE_URL}/memory/all?l=${limit}&u=${offset}`
+                ? `${API_BASE_URL}/memory/all?l=${MEMORY_PAGE_LIMIT}&u=${offset}&sector=${filt}`
+                : `${API_BASE_URL}/memory/all?l=${MEMORY_PAGE_LIMIT}&u=${offset}`
             const res = await fetch(url, { headers: getHeaders() })
             await ensureOk(res, 'fetch memories')
             const data = await res.json()
@@ -60,7 +56,11 @@ export default function Memories() {
         } finally {
             setloading(false)
         }
-    }
+    }, [filt, page])
+
+    useEffect(() => {
+        fetchMems()
+    }, [fetchMems])
 
     async function handleSearch() {
         if (!srch.trim()) {
@@ -75,7 +75,7 @@ export default function Memories() {
                 headers: getHeaders(),
                 body: JSON.stringify({
                     query: srch,
-                    k: 1000,
+                    k: MEMORY_PAGE_LIMIT,
                     filters: filt !== "all" ? { sector: filt } : undefined,
                 }),
             })
@@ -322,7 +322,7 @@ export default function Memories() {
                         </div>
                     )}
 
-                    {!loading && !error && filteredMems.length >= limit && (
+                    {!loading && !error && filteredMems.length >= MEMORY_PAGE_LIMIT && (
                         <div className="flex justify-center items-center space-x-2 mt-4">
                             <button
                                 onClick={() => setpage(p => Math.max(1, p - 1))}
@@ -334,7 +334,7 @@ export default function Memories() {
                             <span className="text-stone-400">Page {page}</span>
                             <button
                                 onClick={() => setpage(p => p + 1)}
-                                disabled={filteredMems.length < limit}
+                                disabled={filteredMems.length < MEMORY_PAGE_LIMIT}
                                 className="rounded-xl p-2 px-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Next

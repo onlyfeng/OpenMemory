@@ -499,7 +499,6 @@ class QueryAnalyzer {
      * Analyze query and extract comprehensive context
      */
     static analyze(query: string): QueryContext {
-        const tokens = TextProcessor.tokenize(query)
         const keywords = TextProcessor.extractKeywords(query, 8)
         const entities = TextProcessor.extractEntities(query)
 
@@ -1155,7 +1154,7 @@ class AnswerSynthesizer {
         }
 
         if (context.complexity === 'complex') {
-            this.addSynthesisSegment(mergedClusters, segments, citations, usedMemories)
+            this.addSynthesisSegment(mergedClusters, segments)
         }
 
         const sectorBreakdown: Record<string, number> = {}
@@ -1343,9 +1342,7 @@ class AnswerSynthesizer {
      */
     private static addSynthesisSegment(
         clusters: MemoryCluster[],
-        segments: AnswerSegment[],
-        citations: Array<{ id: string; snippet: string; sector: string }>,
-        usedMemories: Set<string>
+        segments: AnswerSegment[]
     ): void {
         if (clusters.length < 2) return
 
@@ -1431,7 +1428,7 @@ class AnswerSynthesizer {
         if (contextSegments.length > 0) {
             for (const seg of contextSegments) {
                 const sources = seg.sources.map(id => `[${id.slice(0, 8)}]`).join(' ')
-                parts.push(`\n**Additional Context:** ${seg.content}`)
+                parts.push(`\n**Additional Context:** ${seg.content}${sources ? ` ${sources}` : ''}`)
             }
         }
 
@@ -1886,7 +1883,7 @@ export class MemoryAIEngine {
         const idealPercentage = 1 / sectors.length
 
         let balance = 0
-        for (const [sector, count] of sectors) {
+        for (const [, count] of sectors) {
             const percentage = count / total
             const deviation = Math.abs(percentage - idealPercentage)
             balance += (1 - deviation)
@@ -1920,7 +1917,6 @@ export class MemoryAIEngine {
      */
     static explainConfidence(
         answer: GeneratedAnswer,
-        query: string
     ): string {
         const explanations: string[] = []
 
@@ -2324,7 +2320,6 @@ export class MemoryUtils {
         const connectivity = node ? node.linkedMemories.length / Math.max(1, allMemories.length) : 0
 
         const tokens = TextProcessor.tokenize(memory.content)
-        const allTokens = new Set(allMemories.flatMap(m => TextProcessor.tokenize(m.content)))
         const uniqueTokens = tokens.filter(t => {
             const count = allMemories.filter(m =>
                 TextProcessor.tokenize(m.content).includes(t)

@@ -29,7 +29,6 @@ export default function Decay() {
     const [riskmems, setriskmems] = useState<memory[]>([])
     const [loading, setloading] = useState(true)
     const [error, seterror] = useState<string | null>(null)
-    const [dashstats, setdashstats] = useState<any>(null)
 
     useEffect(() => {
         fetchdata()
@@ -48,10 +47,7 @@ export default function Decay() {
 
             if (!statsres.ok || !memsres.ok) throw new Error('failed to fetch data')
 
-            const statsdata = await statsres.json()
             const memsdata = await memsres.json()
-
-            setdashstats(statsdata)
 
             const sectors = ['semantic', 'episodic', 'procedural', 'emotional', 'reflective']
             const sectorstats = sectors.map(sector => {
@@ -371,5 +367,4 @@ export default function Decay() {
         </div>
     )
 }
-
 

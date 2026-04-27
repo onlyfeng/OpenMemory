@@ -61,7 +61,7 @@ export default function Sidebar() {
         </div>
 
         <div className="h-fit flex flex-col space-y-2 items-center">
-          {navItems.map((item, index) => (
+          {navItems.map((item) => (
             <div key={item.path} className={`relative group ${pathname === item.path ? 'bg-stone-900 rounded-lg border border-stone-800/80' : ''}`}>
               <span className="absolute left-full ml-4 top-1/2 -translate-y-1/2 whitespace-nowrap bg-stone-800 text-stone-200 px-2 py-1 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 {item.label}
