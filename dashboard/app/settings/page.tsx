@@ -442,7 +442,7 @@ const SETTING_METADATA: Record<string, SettingInfo> = {
     }
 }
 
-export default function settings() {
+export default function Settings() {
     const [settings, setSettings] = useState<Record<string, string>>({})
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)

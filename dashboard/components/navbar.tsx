@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+import { API_BASE_URL, getHeaders } from "@/lib/api"
 
 export default function Navbar() {
     const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'checking'>('checking')
@@ -19,6 +18,7 @@ export default function Navbar() {
             const timeoutId = setTimeout(() => controller.abort(), 2000)
 
             const response = await fetch(`${API_BASE_URL}/dashboard/health`, {
+                headers: getHeaders(),
                 signal: controller.signal
             })
 

@@ -13,7 +13,7 @@ interface event {
     salience?: number
 }
 
-export default function timeline() {
+export default function Timeline() {
     const [filter, setfilter] = useState("all")
     const [events, setevents] = useState<event[]>([])
     const [loading, setloading] = useState(true)

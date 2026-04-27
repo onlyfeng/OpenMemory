@@ -156,7 +156,9 @@ export default function Dashboard() {
 
     const fetchBackendHealth = async () => {
         try {
-            const healthRes = await fetch(`${API_BASE_URL}/dashboard/health`)
+            const healthRes = await fetch(`${API_BASE_URL}/dashboard/health`, {
+                headers: getHeaders()
+            })
             if (healthRes.ok) {
                 const health = await healthRes.json()
                 setBackendHealth(health)
@@ -686,4 +688,3 @@ export default function Dashboard() {
         </div>
     )
 }
-

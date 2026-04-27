@@ -21,7 +21,8 @@ npm run dev
 ```
 
 By default the dashboard expects the backend at `http://localhost:8080`.
-If you use a different backend URL, configure it in `.env.local` as described in `CHAT_SETUP.md`.
+If you use a different backend URL or enable backend auth, configure it in `.env.local` as described in `CHAT_SETUP.md`.
+`NEXT_PUBLIC_API_KEY` must match `OPENMEMORY_API_KEY` or `OM_API_KEY` on the backend.
 
 ## Run the dashboard locally
 

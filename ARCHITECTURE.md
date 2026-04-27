@@ -532,6 +532,7 @@ NODE_SECTOR_MAP = {
 OM_PORT=8080
 OM_DB_PATH=./data/openmemory.sqlite
 OM_API_KEY=                      # Optional bearer token
+OPENMEMORY_API_KEY=              # Optional compatibility alias; takes precedence when set
 
 # Embeddings
 OM_EMBEDDINGS=openai             # openai|gemini|aws|ollama|local|synthetic
@@ -652,7 +653,7 @@ OM_LG_REFLECTIVE=true
 
 ### Authentication
 
-- Optional bearer token (`OM_API_KEY`)
+- Optional bearer token (`OPENMEMORY_API_KEY` or `OM_API_KEY`)
 - All write endpoints check auth
 - Read endpoints can be public
 
@@ -666,7 +667,7 @@ OM_LG_REFLECTIVE=true
 ### Best Practices
 
 1. Use HTTPS in production
-2. Set `OM_API_KEY` for write protection
+2. Set `OM_API_KEY` for write protection; use `OPENMEMORY_API_KEY` only when matching older integrations
 3. Run behind reverse proxy (nginx/caddy)
 4. Regular SQLite backups
 5. Monitor embedding logs for failures
