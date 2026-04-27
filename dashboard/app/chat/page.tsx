@@ -23,7 +23,6 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState("")
     const [busy, setBusy] = useState(false)
-    const [connecting, setConnecting] = useState(false)
     const [awaitingAnswer, setAwaitingAnswer] = useState(false)
     const [memories, setMemories] = useState<MemoryReference[]>([])
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -161,7 +160,7 @@ export default function ChatPage() {
                                     </div>
                                 )
                             })}
-                            {(connecting || awaitingAnswer) && (
+                            {awaitingAnswer && (
                                 <div className="w-full flex justify-start">
                                     <div className="bg-stone-900/70 border border-zinc-800 rounded-2xl px-4 py-3">
                                         <div className="flex gap-2 items-center text-stone-400">
@@ -170,7 +169,7 @@ export default function ChatPage() {
                                                 <div className="w-2 h-2 rounded-full bg-stone-600 animate-bounce" style={{ animationDelay: "150ms" }} />
                                                 <div className="w-2 h-2 rounded-full bg-stone-600 animate-bounce" style={{ animationDelay: "300ms" }} />
                                             </div>
-                                            <span className="text-sm">{connecting ? "Connecting…" : "Thinking…"}</span>
+                                            <span className="text-sm">Thinking…</span>
                                         </div>
                                     </div>
                                 </div>

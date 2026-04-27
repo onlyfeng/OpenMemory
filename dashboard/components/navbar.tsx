@@ -29,7 +29,7 @@ export default function Navbar() {
             } else {
                 setBackendStatus('offline')
             }
-        } catch (error) {
+        } catch {
             setBackendStatus('offline')
         }
     }

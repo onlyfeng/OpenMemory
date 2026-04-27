@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Bar } from "react-chartjs-2"
 import {
     Chart as ChartJS,
@@ -24,7 +24,6 @@ export default function Dashboard() {
     const [qpsData, setQpsData] = useState<any[]>([])
     const [healthMetrics, setHealthMetrics] = useState<any>({})
     const [logs, setLogs] = useState<any[]>([])
-    const [topUsers, setTopUsers] = useState<any[]>([])
     const [timePeriod, setTimePeriod] = useState("today")
     const [qpsStats, setQpsStats] = useState<any>({})
     const [maintenanceData, setMaintenanceData] = useState<any[]>([])
@@ -33,18 +32,7 @@ export default function Dashboard() {
     const [backendHealth, setBackendHealth] = useState<any>({})
     const [queryLoadPeriod, setQueryLoadPeriod] = useState("24")
 
-    useEffect(() => {
-        fetchDashboardData()
-        fetchBackendHealth()
-        const dataInterval = setInterval(fetchDashboardData, 30000)
-        const healthInterval = setInterval(fetchBackendHealth, 60000) // 1 minute
-        return () => {
-            clearInterval(dataInterval)
-            clearInterval(healthInterval)
-        }
-    }, [queryLoadPeriod])
-
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         try {
             // Fetch dashboard stats
             const statsRes = await fetch(`${API_BASE_URL}/dashboard/stats`, {
@@ -152,9 +140,9 @@ export default function Dashboard() {
             console.error('Error fetching dashboard data:', error)
             setLoading(false)
         }
-    }
+    }, [queryLoadPeriod])
 
-    const fetchBackendHealth = async () => {
+    const fetchBackendHealth = useCallback(async () => {
         try {
             const healthRes = await fetch(`${API_BASE_URL}/dashboard/health`, {
                 headers: getHeaders()
@@ -181,7 +169,18 @@ export default function Dashboard() {
         } catch (error) {
             console.error('Error fetching backend health:', error)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchDashboardData()
+        fetchBackendHealth()
+        const dataInterval = setInterval(fetchDashboardData, 30000)
+        const healthInterval = setInterval(fetchBackendHealth, 60000) // 1 minute
+        return () => {
+            clearInterval(dataInterval)
+            clearInterval(healthInterval)
+        }
+    }, [fetchDashboardData, fetchBackendHealth])
 
     const timePeriods = [
         { value: "today", label: "Today" },
